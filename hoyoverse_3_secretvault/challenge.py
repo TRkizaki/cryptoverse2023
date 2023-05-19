@@ -1,18 +1,36 @@
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-from secret import flag
+from Crypto.Util.number import *
 
-KEY_LEN = 2
-BS = 16
-key = pad(open("/dev/urandom","rb").read(KEY_LEN), BS)
-iv =  open("/dev/urandom","rb").read(BS)
+from secret import FLAG
 
-cipher = AES.new(key, AES.MODE_CBC, iv)
-ct = cipher.encrypt(pad(flag, 16))
+assert FLAG[:6] == b'cvctf{'
+assert FLAG[-1:] == b'}'
+FLAG = FLAG[6:-1]
+assert len(FLAG) == 24
 
-print(f"iv = {iv.hex()}")
-print(f"ct = {ct.hex()}")
+class HoYoVault:
+    def __init__(self, u, v, w):
+        self.state = [u, v, w]
+        while True:
+            self.p = getPrime(64)
+            self.a = bytes_to_long(FLAG[:6])
+            self.b = bytes_to_long(FLAG[6:12])
+            self.c = bytes_to_long(FLAG[12:18])
+            self.d = bytes_to_long(FLAG[18:])
+            if self.p > max([self.a, self.b, self.c, self.d]):
+                break
+    
+    def Generate(self):
+        data = (self.a * self.state[-1] + self.b * self.state[-2] + self.c * self.state[-3] + self.d) % self.p
+        self.state.append(data)
+        return data
 
-# Output:
-# iv = 1df49bc50bc2432bd336b4609f2104f7
-# ct = a40c6502436e3a21dd63c1553e4816967a75dfc0c7b90328f00af93f0094ed62
+def main():
+    vault = HoYoVault(getRandomInteger(128), getRandomInteger(256), getRandomInteger(512))
+    print("data = " + str([vault.Generate() for _ in range(7)]))
+    print("p = " + str(vault.p))
+
+if __name__ == "__main__":
+    main() 
+
+# data = [14169084828739113416, 12950362233651727953, 13081576751296291893, 11189892724250189745, 2366046383900978737, 1749792629103627315, 8575562236709928474]
+# p = 16200480981168924301
